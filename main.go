@@ -6,6 +6,8 @@ import (
 	"bytes"
 	"flag"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/mitchellh/goamz/aws"
@@ -52,17 +54,41 @@ func loop() {
 
 func main() {
 	flag.Parse()
+	var err error
 
 	evt = time.NewTicker(interval)
 
-	if zoneId == "" {
-		log.Error("Zone ID required")
-		return
+	switch {
+	case zoneId == "":
+		if os.Getenv("ZONE_ID") == "" {
+			log.Error("Zone ID required")
+			return
+		} else {
+			zoneId = os.Getenv("ZONE_ID")
+		}
+	case recordName == "":
+		if os.Getenv("RECORD_NAME") == "" {
+			log.Error("Record name required")
+			return
+		} else {
+			recordName = os.Getenv("RECORD_NAME")
+		}
 	}
 
-	if recordName == "" {
-		log.Error("Record Name required")
-		return
+	if os.Getenv("RECORD_TYPE") != "" {
+		recordType = os.Getenv("RECORD_TYPE")
+	}
+
+	if os.Getenv("RECORD_TTL") != "" {
+		ttl, _ = strconv.Atoi(os.Getenv("RECORD_TTL"))
+	}
+
+	if os.Getenv("INTERVAL") != "" {
+		interval, err = time.ParseDuration(os.Getenv("INTERVAL"))
+		if err != nil {
+			log.Error(err)
+			return
+		}
 	}
 
 	auth, err := aws.EnvAuth()

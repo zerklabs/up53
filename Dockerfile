@@ -2,9 +2,6 @@
 # and a workspace (GOPATH) configured at /go.
 FROM golang
 
-# Copy the local package files to the container's workspace.
-ADD . /go/src/github.com/zerklabs/up53
-
 # Build the outyet command inside the container.
 # (You may fetch or manage dependencies here,
 # either manually or with a tool like "godep".)
