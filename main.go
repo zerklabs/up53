@@ -33,6 +33,9 @@ func init() {
 	flag.StringVar(&recordType, "type", "A", "Record type to update")
 	flag.IntVar(&ttl, "ttl", 3600, "TTL of record to update")
 	flag.DurationVar(&interval, "interval", time.Hour*1, "How often to check and update the record")
+
+	log.EnableDebugLogging()
+	log.Dest(os.Stdout, os.Stdout)
 }
 
 func loop() {
