@@ -7,6 +7,7 @@ FROM golang
 # either manually or with a tool like "godep".)
 RUN go get github.com/mitchellh/goamz/...
 RUN go get github.com/zerklabs/auburn/log
+RUN go get github.com/zerklabs/up53
 RUN go install github.com/zerklabs/up53
 
 # Run the outyet command by default when the container starts.
