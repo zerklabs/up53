@@ -33,33 +33,28 @@ func init() {
 	flag.StringVar(&recordType, "type", "A", "Record type to update")
 	flag.IntVar(&ttl, "ttl", 3600, "TTL of record to update")
 	flag.DurationVar(&interval, "interval", time.Hour*1, "How often to check and update the record")
-
-	log.EnableDebugLogging()
-	log.Dest(os.Stdout, os.Stdout)
 }
 
-func loop() {
-	for {
-		select {
-		case <-evt.C:
-			ip, err := getPubIp()
-			if err != nil {
-				log.Errorf("Error fetching public IP: %v", err)
-				return
-			}
-			log.Infof("Public IP: %s", ip)
+func loop(interval time.Duration) {
+	c := time.Tick(interval)
 
-			updateRecord(client, zoneId, recordName, recordType, ip, ttl)
-
+	for now := range c {
+		ip, err := getPubIp()
+		if err != nil {
+			log.Errorf("Error fetching public IP: %v", err)
+			return
 		}
+
+		updateRecord(client, zoneId, recordName, recordType, ip, ttl)
+
+		log.Debugf("Now: %v", now)
 	}
+
 }
 
 func main() {
 	flag.Parse()
 	var err error
-
-	evt = time.NewTicker(interval)
 
 	switch {
 	case zoneId == "":
@@ -94,6 +89,8 @@ func main() {
 		}
 	}
 
+	log.Debugf("Checking IP address every: %s", interval)
+
 	auth, err := aws.EnvAuth()
 	if err != nil {
 		log.Error(err)
@@ -101,7 +98,7 @@ func main() {
 	}
 	client = route53.New(auth, aws.USEast)
 
-	loop()
+	loop(interval)
 }
 
 func fetchRecords() {
@@ -134,10 +131,13 @@ func getPubIp() (string, error) {
 		return "", err
 	}
 
+	log.Debugf("Fetched public IP: %s", buf.String())
+
 	return buf.String(), nil
 }
 
 func updateRecord(c *route53.Route53, zoneId, recordName, recordType, recordValue string, ttl int) error {
+	log.Debugf("Updating resource record: %s %s %s %s %d", zoneId, recordName, recordType, recordValue, ttl)
 	resp, err := c.ChangeResourceRecordSets(zoneId, &route53.ChangeResourceRecordSetsRequest{
 		Changes: []route53.Change{
 			route53.Change{
@@ -156,7 +156,7 @@ func updateRecord(c *route53.Route53, zoneId, recordName, recordType, recordValu
 		return err
 	}
 
-	log.Infof("ID: %s, Status: %s, Submitted At: %s", resp.ChangeInfo.ID, resp.ChangeInfo.Status, resp.ChangeInfo.SubmittedAt)
+	log.Debugf("ID: %s, Status: %s, Submitted At: %s", resp.ChangeInfo.ID, resp.ChangeInfo.Status, resp.ChangeInfo.SubmittedAt)
 
 	return nil
 }
