@@ -36,7 +36,7 @@ func init() {
 func loop(i time.Duration) {
 	c := time.Tick(i)
 
-	for range c {
+	for _ = range c {
 		ip, err := getPubIp()
 		if err != nil {
 			log.Errorf("Error fetching public IP: %v", err)
@@ -52,15 +52,16 @@ func main() {
 	flag.Parse()
 	var err error
 
-	switch {
-	case zoneId == "":
+	if zoneId == "" {
 		if os.Getenv("ZONE_ID") == "" {
 			log.Error("Zone ID required")
 			return
 		} else {
 			zoneId = os.Getenv("ZONE_ID")
 		}
-	case recordName == "":
+	}
+
+	if recordName == "" {
 		if os.Getenv("RECORD_NAME") == "" {
 			log.Error("Record name required")
 			return
@@ -85,7 +86,7 @@ func main() {
 		}
 	}
 
-	log.Debugf("Checking IP address every: %s", interval)
+	log.Debugf("Checking IP address every: %s and updating RR: %s", interval, recordName)
 
 	auth, err := aws.EnvAuth()
 	if err != nil {
