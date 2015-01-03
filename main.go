@@ -23,8 +23,6 @@ var (
 	ttl        int
 	interval   time.Duration
 	client     *route53.Route53
-
-	evt *time.Ticker
 )
 
 func init() {
@@ -35,19 +33,17 @@ func init() {
 	flag.DurationVar(&interval, "interval", time.Hour*1, "How often to check and update the record")
 }
 
-func loop(interval time.Duration) {
-	c := time.Tick(interval)
+func loop(i time.Duration) {
+	c := time.Tick(i)
 
-	for now := range c {
+	for range c {
 		ip, err := getPubIp()
 		if err != nil {
 			log.Errorf("Error fetching public IP: %v", err)
 			return
 		}
 
-		updateRecord(client, zoneId, recordName, recordType, ip, ttl)
-
-		log.Debugf("Now: %v", now)
+		updateRecord(ip)
 	}
 
 }
@@ -136,9 +132,10 @@ func getPubIp() (string, error) {
 	return buf.String(), nil
 }
 
-func updateRecord(c *route53.Route53, zoneId, recordName, recordType, recordValue string, ttl int) error {
+func updateRecord(recordValue string) error {
 	log.Debugf("Updating resource record: %s %s %s %s %d", zoneId, recordName, recordType, recordValue, ttl)
-	resp, err := c.ChangeResourceRecordSets(zoneId, &route53.ChangeResourceRecordSetsRequest{
+
+	resp, err := client.ChangeResourceRecordSets(zoneId, &route53.ChangeResourceRecordSetsRequest{
 		Changes: []route53.Change{
 			route53.Change{
 				Action: "UPSERT",
